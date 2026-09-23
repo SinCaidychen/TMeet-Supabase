@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "TMeet",
+    "slug": "tmeet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": null
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TMeet cần vị trí của bạn để hiện các bạn du lịch gần đó trên bản đồ."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "PUT_YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        }
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "TMeet cần vị trí của bạn để hiện các bạn du lịch gần đó trên bản đồ."
+        }
+      ]
+    ]
+  }
+}

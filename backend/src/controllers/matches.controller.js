@@ -2,24 +2,36 @@ const prisma = require("../config/prisma");
 const { encrypt, decrypt } = require("../utils/crypto");
 
 // GET /api/matches/nearby
-// Trả về các user khác kèm loại pin (하트/기본/상극) theo Compatibility đã tính sẵn.
-// Chỉ trả toạ độ thô (lat/lng) của họ - không có gì liên quan lịch trình chi tiết ở đây.
+// Trả về TẤT CẢ user khác đã có toạ độ (lat/lng), kèm loại pin (하트/기본/상극) nếu đã có
+// Compatibility được tính sẵn (việc tính toán bằng OpenAI là phần của 오승화, làm sau).
+// Chưa có compatibility -> mặc định pin 기본 (BASIC), score 0, để bản đồ vẫn có dữ liệu hiển thị ngay.
 async function nearby(req, res) {
   const userId = req.userId;
-  const compats = await prisma.compatibility.findMany({
-    where: { OR: [{ userAId: userId }, { userBId: userId }] },
-    include: { userA: true, userB: true },
-  });
 
-  const result = compats.map((c) => {
-    const other = c.userAId === userId ? c.userB : c.userA;
+  const [others, compats] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { not: userId }, lat: { not: null }, lng: { not: null } },
+    }),
+    prisma.compatibility.findMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+    }),
+  ]);
+
+  const compatByOtherId = new Map();
+  for (const c of compats) {
+    const otherId = c.userAId === userId ? c.userBId : c.userAId;
+    compatByOtherId.set(otherId, c);
+  }
+
+  const result = others.map((other) => {
+    const c = compatByOtherId.get(other.id);
     return {
       userId: other.id,
       name: other.name,
       lat: other.lat,
       lng: other.lng,
-      pinType: c.pinType,
-      score: c.score,
+      pinType: c?.pinType || "BASIC",
+      score: c?.score ?? 0,
     };
   });
 
@@ -118,6 +130,17 @@ async function getConsent(req, res) {
   res.json(payload);
 }
 
+// GET /api/matches/consent/by-user/:otherUserId
+// Tiện cho mobile: tìm (nếu có) phòng DIRECT + consent record đang có với 1 user cụ thể,
+// để biết nên hiện nút "Nhắn tin xin xem lịch trình" hay hiện lại trạng thái đã xin trước đó.
+async function getConsentByUser(req, res) {
+  const room = await findDirectRoom(req.userId, req.params.otherUserId);
+  if (!room) return res.json({ room: null, consent: null });
+
+  const consent = await prisma.scheduleConsent.findUnique({ where: { roomId: room.id } });
+  res.json({ room: { id: room.id }, consent: consent ? sanitizeConsent(consent) : null });
+}
+
 // --- helpers ---
 
 async function findDirectRoom(userAId, userBId) {
@@ -145,4 +168,11 @@ function sanitizeConsent(consent) {
   return rest;
 }
 
-module.exports = { nearby, requestConsent, respondConsent, submitDetail, getConsent };
+module.exports = {
+  nearby,
+  requestConsent,
+  respondConsent,
+  submitDetail,
+  getConsent,
+  getConsentByUser,
+};

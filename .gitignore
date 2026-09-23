@@ -5,3 +5,12 @@ node_modules/
 dist/
 build/
 backend/generated/
+
+# Expo / React Native
+.expo/
+mobile/.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
