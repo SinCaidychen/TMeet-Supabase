@@ -1,0 +1,121 @@
+// TMeet - Prisma schema
+// Models cover: users, travel-personality tags (from OpenAI onboarding, owned by frontend team
+// but stored here), compatibility/pins, 1:1 + group chat, and the 2-stage schedule-sharing security.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  motto        String?
+  tags         Json?    // travel-style tags chosen at onboarding
+  personality  Json?    // OpenAI-generated personality summary
+  lat          Float?
+  lng          Float?
+  createdAt    DateTime @default(now())
+
+  sentMessages   Message[]        @relation("SentMessages")
+  chatMemberships ChatMember[]
+  compatFrom     Compatibility[]  @relation("CompatFrom")
+  compatTo       Compatibility[]  @relation("CompatTo")
+  consentsA      ScheduleConsent[] @relation("ConsentUserA")
+  consentsB      ScheduleConsent[] @relation("ConsentUserB")
+}
+
+enum PinType {
+  HEART   // 하트 핀 - cao tương hợp
+  BASIC   // 기본 핀 - trung bình
+  OPPOSITE // 상극 핀 - lệch tính cách
+}
+
+model Compatibility {
+  id        String   @id @default(uuid())
+  userAId   String
+  userBId   String
+  score     Float    // 0..1, do bên xử lý OpenAI tính và ghi vào đây
+  pinType   PinType
+  updatedAt DateTime @updatedAt
+
+  userA User @relation("CompatFrom", fields: [userAId], references: [id])
+  userB User @relation("CompatTo", fields: [userBId], references: [id])
+
+  @@unique([userAId, userBId])
+}
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+}
+
+model ChatRoom {
+  id        String       @id @default(uuid())
+  type      ChatRoomType
+  name      String?      // dùng cho GROUP, null cho DIRECT
+  createdAt DateTime     @default(now())
+
+  members  ChatMember[]
+  messages Message[]
+  consent  ScheduleConsent?
+}
+
+model ChatMember {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  room ChatRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  roomId    String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  room   ChatRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+enum ConsentStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// The core of the "2-stage security" feature: rough info is always visible on the map;
+// detailed info is stored encrypted and only decrypted for both users once status = ACCEPTED.
+model ScheduleConsent {
+  id       String        @id @default(uuid())
+  roomId   String        @unique // 1 cặp chat 1:1 <-> 1 lịch trình chia sẻ
+  userAId  String
+  userBId  String
+  status   ConsentStatus @default(PENDING)
+
+  roughCity       String?  // giai đoạn 1: luôn hiển thị
+  roughDateRange  String?  // vd. "vào khoảng giữa tháng 10"
+
+  detailEncrypted String?  // giai đoạn 2: JSON chi tiết (địa điểm, giờ) đã mã hoá AES-256-GCM
+  detailIv        String?  // IV dùng khi mã hoá, cần để giải mã
+  detailAuthTag   String?  // GCM auth tag
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room  ChatRoom @relation(fields: [roomId], references: [id])
+  userA User     @relation("ConsentUserA", fields: [userAId], references: [id])
+  userB User     @relation("ConsentUserB", fields: [userBId], references: [id])
+}
