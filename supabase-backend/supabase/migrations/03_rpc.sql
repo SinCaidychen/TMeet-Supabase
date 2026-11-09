@@ -1,10 +1,21 @@
 -- =====================================================================
--- TMeet · 003 RPC 함수 (앱에서 supabase.rpc('이름', {...}) 로 부름)
--- 담당: C (부이휘황) · C-8 주변 조회, C-10 연결 요청(+NFR-20 현지 확인), C-11 채팅방, C-13 동의 기록
--- 오류는 message 에 짧은 코드로 돌려준다 (예: 'too_far'). 앱은 코드를 번역 문구 키로 바꿔 보여준다.
+-- TMeet · 03 · Hàm RPC (app gọi bằng supabase.rpc('tên', {...})) / RPC 함수 (앱에서 supabase.rpc 로 호출)
+-- Người phụ trách / 담당: C (부이휘황)
+--   C-8 tìm người gần / 주변 조회 · C-10 lời mời + kiểm tra ở gần (NFR-20) / 연결 요청 + 현지 확인
+--   C-11 phòng chat / 채팅방 · C-13 ghi thời điểm đồng ý / 동의 기록
+--
+-- VI: Khi lỗi, hàm trả về mã ngắn trong message (vd 'too_far'). App đổi mã thành câu thông báo
+--     bằng toErrorKey() trong src/api/errors.js.
+-- KR: 오류는 message 에 짧은 코드로 돌려준다 (예: 'too_far'). 앱은 src/api/errors.js 의
+--     toErrorKey() 로 번역 문구 키로 바꿔 보여준다.
 -- =====================================================================
 
--- ---------- 동의 기록 (FR-40, FR-41, NFR-15) ----------
+
+-- ---------------------------------------------------------------------
+-- Ghi thời điểm đồng ý (FR-40, FR-41, NFR-15) / 동의 기록
+-- VI: Gọi nhiều lần cũng chỉ giữ lần đồng ý đầu tiên.
+-- KR: 여러 번 호출해도 처음 동의한 시각만 남는다.
+-- ---------------------------------------------------------------------
 create or replace function public.agree_terms() returns timestamptz
 language plpgsql security definer set search_path = '' as $$
 declare v timestamptz;
@@ -25,9 +36,16 @@ begin
   return v;
 end $$;
 
--- ---------- 위치 저장 (FR-13, 기획서 12장) ----------
--- 앱(B)은 소수점 둘째 자리로 반올림한 좌표를 보내면 된다. 서버가 다시 반올림 + 고정 오프셋을 적용하므로
--- 정확한 좌표를 보내도 정확한 값은 저장되지 않는다 (이중 안전장치).
+
+-- ---------------------------------------------------------------------
+-- Lưu vị trí (FR-13, chương 12) / 위치 저장 (기획서 12장)
+-- VI: App (B) gửi tọa độ lên là được. Server tự làm tròn + cộng offset cố định,
+--     nên dù gửi tọa độ chính xác thì giá trị chính xác cũng không bao giờ được lưu (2 lớp bảo vệ).
+--     Phải gọi agree_location() trước, nếu không sẽ báo 'location_consent_required'.
+-- KR: 앱(B)은 좌표를 그대로 보내면 된다. 서버가 다시 반올림 + 고정 오프셋을 적용하므로
+--     정확한 좌표를 보내도 정확한 값은 저장되지 않는다 (이중 안전장치).
+--     먼저 agree_location() 을 호출해야 한다. 아니면 'location_consent_required'.
+-- ---------------------------------------------------------------------
 create or replace function public.update_my_location(
   p_lat double precision, p_lng double precision, p_city text default null)
 returns table (approx_lat double precision, approx_lng double precision,
@@ -58,10 +76,17 @@ begin
   returning p.approx_lat, p.approx_lng, p.city_name, p.location_updated_at;
 end $$;
 
--- ---------- 주변 여행자 조회 (FR-14, C-8) ----------
--- 반경 10 km(1~10), 최근 24시간 갱신, 본인·차단(양쪽)·위치 숨김 제외.
--- A의 matching.js 가 점수를 계산할 수 있도록 필요한 필드를 한 번에 돌려준다.
--- 시연 모드(FR-24)에서는 p_include_demo = true 로 파리 가상 여행자(is_demo)를 함께 받는다.
+
+-- ---------------------------------------------------------------------
+-- Tìm người du lịch xung quanh (FR-14, C-8) / 주변 여행자 조회
+-- VI: Trong bán kính 1~10 km (mặc định 10), cập nhật vị trí trong 24 giờ,
+--     bỏ bản thân, người chặn nhau (2 chiều), người ẩn vị trí. Sắp xếp gần → xa.
+--     Trả về đủ các trường để matching.js của A tính điểm.
+--     Chế độ demo (FR-24): p_include_demo = true để thấy cả người giả lập ở Paris (is_demo).
+-- KR: 반경 1~10 km(기본 10), 최근 24시간 갱신, 본인·차단(양쪽)·위치 숨김 제외. 가까운 순.
+--     A의 matching.js 가 점수를 계산할 수 있도록 필요한 필드를 한 번에 돌려준다.
+--     시연 모드(FR-24)에서는 p_include_demo = true 로 파리 가상 여행자(is_demo)를 함께 받는다.
+-- ---------------------------------------------------------------------
 create or replace function public.get_nearby_travelers(
   p_radius_km double precision default 10,
   p_include_demo boolean default false)
@@ -87,7 +112,8 @@ begin
   select p.approx_lat, p.approx_lng into my_lat, my_lng from public.profiles p where p.id = me;
   if my_lat is null then raise exception 'location_required'; end if;
 
-  -- 사각형으로 먼저 거르고(인덱스 사용) 정확한 거리로 다시 거른다
+  -- VI: Lọc nhanh bằng hình chữ nhật (dùng chỉ mục) rồi lọc lại bằng khoảng cách thật
+  -- KR: 사각형으로 먼저 거르고(인덱스 사용) 정확한 거리로 다시 거른다
   dlat := r / 111.0;
   dlng := r / (111.0 * greatest(cos(radians(my_lat)), 0.01));
 
@@ -114,9 +140,15 @@ begin
    limit 200;
 end $$;
 
--- ---------- 연결 요청 보내기 (FR-19, C-10) ----------
--- 규칙: 본인 X, 차단 관계 X, 이미 채팅 중 X, 같은 상대 대기 중 요청 X, 상대가 이미 나에게 보낸 대기 요청이 있으면 X,
---       NFR-20 현지 확인: 내 위치(24시간 안)가 상대 위치에서 10 km 안. 하루 30건 제한.
+
+-- ---------------------------------------------------------------------
+-- Gửi lời mời kết nối (FR-19, C-10) / 연결 요청 보내기
+-- VI: Từ chối khi: gửi cho chính mình · đang chặn nhau · đã có phòng chat · đã có lời mời đang chờ
+--     (chiều nào cũng vậy) · quá 30 lời mời/ngày.
+--     NFR-20 kiểm tra ở gần: vị trí của tôi (trong 24 giờ) phải cách người kia ≤ 10 km.
+-- KR: 거절 조건: 본인 · 차단 관계 · 이미 채팅 중 · 대기 중 요청 있음(어느 쪽이든) · 하루 30건 초과.
+--     NFR-20 현지 확인: 내 위치(24시간 안)가 상대 위치에서 10 km 안.
+-- ---------------------------------------------------------------------
 create or replace function public.send_request(p_to uuid, p_message text default null)
 returns public.connection_requests
 language plpgsql security definer set search_path = '' as $$
@@ -137,7 +169,8 @@ begin
   if mine.nickname is null then raise exception 'profile_incomplete'; end if;
   if public.tmeet_is_blocked(me, p_to) then raise exception 'blocked'; end if;
 
-  -- NFR-20 현지 확인 (좌표는 둘 다 약 1 km 단위로 뭉갠 값이라 1 km 여유를 둔다)
+  -- VI: Kiểm tra ở gần. Tọa độ hai bên đều đã làm mờ (~1 km) nên cho dư thêm 1 km
+  -- KR: 현지 확인. 좌표는 둘 다 약 1 km 단위로 뭉갠 값이라 1 km 여유를 둔다
   if mine.approx_lat is null or mine.location_updated_at < now() - interval '24 hours' then
     raise exception 'location_required';
   end if;
@@ -169,9 +202,15 @@ begin
   return v_row;
 end $$;
 
--- ---------- 요청 수락·거절 (FR-20, FR-21) — 받은 사람만. 수락하면 채팅방 자동 생성 ----------
+
+-- ---------------------------------------------------------------------
+-- Chấp nhận / từ chối lời mời (FR-20, FR-21) / 요청 수락·거절
+-- VI: Chỉ người nhận được trả lời. Chấp nhận → tự tạo phòng chat và trả về id phòng.
+--     Từ chối → trả về null.
+-- KR: 받은 사람만 답할 수 있다. 수락하면 채팅방을 자동 생성하고 방 id 를 돌려준다. 거절하면 null.
+-- ---------------------------------------------------------------------
 create or replace function public.respond_request(p_request_id uuid, p_accept boolean)
-returns uuid   -- 수락 시 채팅방 id, 거절 시 null
+returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
   me   uuid := auth.uid();
@@ -193,6 +232,7 @@ begin
 
   update public.connection_requests set status = 'accepted', responded_at = now() where id = req.id;
 
+  -- VI: Nếu hai người đã có phòng thì dùng lại / KR: 이미 방이 있으면 그 방을 쓴다
   select r.id into room from public.chat_rooms r
    where (r.user_a = req.from_user and r.user_b = req.to_user)
       or (r.user_a = req.to_user and r.user_b = req.from_user);
@@ -204,7 +244,12 @@ begin
   return room;
 end $$;
 
--- ---------- 요청함 (R1): 받은·보낸 요청 + 상대 요약 ----------
+
+-- ---------------------------------------------------------------------
+-- Hộp lời mời (màn hình R1) / 요청함 (R1)
+-- VI: Lời mời đã nhận và đã gửi, kèm tóm tắt hồ sơ người kia. direction = 'received' | 'sent'.
+-- KR: 받은·보낸 요청 + 상대 요약. direction = 'received' | 'sent'.
+-- ---------------------------------------------------------------------
 create or replace function public.get_my_requests()
 returns table (
   id uuid, direction text, status text, message text, created_at timestamptz, responded_at timestamptz,
@@ -224,7 +269,13 @@ language sql stable security definer set search_path = '' as $$
    limit 200
 $$;
 
--- ---------- 채팅 목록 (C1): 상대 정보 + 마지막 메시지 ----------
+
+-- ---------------------------------------------------------------------
+-- Danh sách chat (màn hình C1) / 채팅 목록 (C1)
+-- VI: Thông tin người kia + tin nhắn cuối. partner_deleted = người kia đã xóa tài khoản,
+--     partner_blocked = hai bên đang chặn nhau (app khóa ô nhập).
+-- KR: 상대 정보 + 마지막 메시지. partner_deleted = 상대 탈퇴, partner_blocked = 차단 관계(입력창 잠금).
+-- ---------------------------------------------------------------------
 create or replace function public.get_my_chat_rooms()
 returns table (
   room_id uuid, partner_id uuid, partner_nickname text, partner_photo_url text,
@@ -246,7 +297,10 @@ language sql stable security definer set search_path = '' as $$
    order by coalesce(r.last_message_at, r.created_at) desc
 $$;
 
--- ---------- 권한: 로그인한 사용자만 호출 ----------
+
+-- ---------------------------------------------------------------------
+-- Quyền gọi hàm: chỉ người đã đăng nhập / 권한: 로그인한 사용자만 호출
+-- ---------------------------------------------------------------------
 do $$
 declare f text;
 begin
@@ -265,5 +319,5 @@ begin
   end loop;
 end $$;
 
--- 내부 도우미는 직접 호출 막기
+-- VI: Hàm nội bộ, không cho gọi trực tiếp / KR: 내부 도우미는 직접 호출 막기
 revoke all on function public.tmeet_fuzz_coord(uuid, double precision, double precision) from public, anon, authenticated;

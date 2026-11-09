@@ -1,10 +1,20 @@
 -- =====================================================================
--- TMeet · 파리 가상 여행자 (FR-24 시연 모드, 기획서 6-4) · C-9
--- 데이터 내용은 B(바야르)의 data/demo-paris.json 이 나오면 그 값으로 바꿔도 된다. 구조는 그대로.
--- 실행: Supabase 대시보드 SQL Editor 에 붙여넣고 Run (여러 번 실행해도 중복되지 않음)
--- 가상 여행자는 로그인할 수 없는 계정이다 (비밀번호 없음). is_demo = true 라서
--- 시연 모드(get_nearby_travelers(p_include_demo => true))에서만 지도에 보인다.
--- 참고: 아래 점수는 기획서 9-5의 "나" 프로필 기준 계산값 (하트 4 · 기본 8 · 상극 2)
+-- TMeet · Người du lịch giả lập ở Paris / 파리 가상 여행자 (FR-24 시연 모드, 기획서 6-4) · C-9
+--
+-- VI: 14 người giả lập cho chế độ demo. Khi B (바야르) làm xong data/demo-paris.json có thể thay
+--     nội dung bằng dữ liệu đó, giữ nguyên cấu trúc.
+-- KR: 시연 모드용 가상 여행자 14명. B(바야르)의 data/demo-paris.json 이 나오면 그 값으로 바꿔도 된다. 구조는 그대로.
+--
+-- VI: Cách chạy: dán vào Supabase Dashboard → SQL Editor → Run (chạy nhiều lần cũng không bị trùng).
+-- KR: 실행: Supabase 대시보드 SQL Editor 에 붙여넣고 Run (여러 번 실행해도 중복되지 않음).
+--
+-- VI: Tài khoản giả lập không đăng nhập được (không có mật khẩu). Vì is_demo = true nên chỉ hiện trên bản đồ
+--     khi bật chế độ demo: get_nearby_travelers(p_include_demo => true).
+-- KR: 가상 여행자는 로그인할 수 없는 계정이다(비밀번호 없음). is_demo = true 라서
+--     시연 모드(get_nearby_travelers(p_include_demo => true))에서만 지도에 보인다.
+--
+-- VI: Điểm dưới đây tính theo hồ sơ "tôi" ở ví dụ 9-5 (trái tim 4 · thường 8 · khắc 2).
+-- KR: 아래 점수는 기획서 9-5의 "나" 프로필 기준 계산값 (하트 4 · 기본 8 · 상극 2).
 --   Alex: 88%
 --   수아: 95%
 --   Léa: 97%
@@ -21,6 +31,8 @@
 --   Hana: 93%
 -- =====================================================================
 begin;
+
+-- VI: Tạo 14 tài khoản giả lập (trigger tự tạo profiles) / KR: 가상 계정 14개 생성 (트리거가 profiles 자동 생성)
 
 insert into auth.users (id, instance_id, aud, role, email, raw_app_meta_data, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
@@ -40,6 +52,7 @@ values
   ('d0000000-0000-4000-8000-000000000014', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo14@demo.tmeet', '{"provider":"email","providers":["email"],"is_demo":true}', '{}', now(), now(), now())
 on conflict (id) do nothing;
 
+-- VI: Điền hồ sơ, tag, vị trí đã làm mờ quanh Paris / KR: 프로필·태그·파리 주변 뭉갠 위치 입력
 with demo (id, nickname, app_language, tagline, bio, languages, interests, ai_interests,
            style_pace, style_planning, style_budget, ai_style, meet_types, group_size, ai_keywords, lat, lng) as (
   values
@@ -75,5 +88,7 @@ update public.profiles p
 
 commit;
 
--- 확인: select nickname, interests, approx_lat, approx_lng from public.profiles where is_demo order by nickname;
--- 지우기: delete from auth.users where id::text like 'd0000000-0000-4000-8000-%';
+-- VI: Kiểm tra / KR: 확인:
+--   select nickname, interests, approx_lat, approx_lng from public.profiles where is_demo order by nickname;
+-- VI: Xóa dữ liệu giả lập / KR: 지우기:
+--   delete from auth.users where id::text like 'd0000000-0000-4000-8000-%';
