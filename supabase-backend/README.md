@@ -31,6 +31,33 @@ npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
 | `03_rpc.sql` | 앱이 부르는 서버 함수 / Hàm server app gọi |
 | `04_hardening.sql` | 보안 점검 후 보강 / Gia cố sau kiểm tra bảo mật |
 
+### Supabase CLI 사용법 / Cách dùng Supabase CLI
+
+**KR** 원격 프로젝트의 마이그레이션 기록은 파일 이름과 같은 `01`~`04` 로 맞춰 두었습니다. `supabase-backend/` 폴더에서 실행합니다.
+**VI** Lịch sử migration trên project thật đã được đặt là `01`~`04`, khớp với tên file. Chạy các lệnh trong thư mục `supabase-backend/`.
+
+```bash
+cd supabase-backend
+npx supabase login                                   # VI: đăng nhập 1 lần / KR: 최초 1회 로그인
+npx supabase link --project-ref gcweoxxtsgealkrvjits # VI: nối với project tmeet / KR: tmeet 프로젝트 연결 (DB 비밀번호 필요 / cần mật khẩu DB)
+npx supabase migration list                          # VI: 01~04 hai cột Local/Remote phải giống nhau / KR: Local·Remote 가 01~04 로 같아야 함
+
+# VI: Thêm thay đổi mới / KR: 새 변경 추가
+npx supabase migration new add_something             # → migrations/<thời gian/시각>_add_something.sql
+npx supabase db push                                 # VI: áp lên project thật / KR: 실제 프로젝트에 적용
+
+# VI: Deploy lại Edge Function / KR: Edge Function 다시 배포
+npx supabase functions deploy analyze-bio
+npx supabase functions deploy delete-account
+
+# VI: Chạy thử trên máy (cần Docker) — tự chạy 01~04 rồi seed Paris
+# KR: 로컬 실행 (Docker 필요) — 01~04 와 파리 seed 를 자동 실행
+npx supabase start
+```
+
+**KR** `supabase migration new` 가 만드는 파일은 시각(예: `20261110…`)으로 시작하지만, 문자 순서로 `04` 뒤에 오므로 그대로 써도 됩니다. 이름을 맞추고 싶으면 `05_add_something.sql` 처럼 바꿔도 됩니다. `supabase config push` 는 실제 프로젝트의 Auth 설정을 덮어쓰므로 주의하세요.
+**VI** File do `supabase migration new` tạo sẽ bắt đầu bằng thời gian (vd `20261110…`). Vì xếp theo thứ tự ký tự nên nó vẫn đứng sau `04`, dùng luôn cũng được. Muốn đồng bộ tên thì đổi thành `05_add_something.sql`. Cẩn thận với `supabase config push` vì lệnh này ghi đè cài đặt Auth trên project thật.
+
 ## 2. 담당 작업 현황 / Tình trạng công việc
 
 | 번호 / Mã | 할 일 / Việc | 상태 / Trạng thái | 위치 / Ở đâu |
