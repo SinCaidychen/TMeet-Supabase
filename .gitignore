@@ -1,16 +1,18 @@
-node_modules/
+# 비밀값 — 절대 커밋하지 않음 (NFR-18) / Không bao giờ commit
 .env
-*.log
-.DS_Store
-dist/
-build/
-backend/generated/
+.env.*
+!.env.example
+supabase/.temp/
+supabase-backend/supabase/.temp/
 
-# Expo / React Native
+# 의존성·빌드 / Thư viện, build
+node_modules/
 .expo/
-mobile/.expo/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+dist/
+web-build/
+
+# OS·편집기 / Hệ điều hành, editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

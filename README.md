@@ -1,55 +1,10 @@
-# TMeet (GlobalT)
+# TMeet — 백엔드 & DB 문서 (C 부이휘황)
 
-AI 및 위치 기반 글로벌 즉석 여행 밋업 플랫폼 — Capstone Design, Gwangju University (앵커사업단), team **GlobalT**.
+캡스톤디자인 TMeet 의 Supabase 백엔드와 데이터베이스 문서입니다. 기획서 v2.0(11/7) 기준.
 
-## Team
-
-| Thành viên | Vai trò |
+| 폴더 | 내용 |
 |---|---|
-| 오승화 (team lead) | Tổng chỉ huy, Figma UI/UX, tích hợp OpenAI API, frontend |
-| 바야라 | Frontend app screens, tích hợp Google Maps API + hiển thị pin |
-| 부이휘황 | Backend/DB, chat server real-time, logic bảo mật 2 giai đoạn |
+| [`supabase-backend/`](supabase-backend/) | 마이그레이션(SQL), RLS, RPC, Edge Function, 파리 가상 데이터, 앱용 `src/lib`·`src/api` — 자세한 설명은 [README](supabase-backend/README.md) |
+| [`docs/`](docs/) | ERD, DB 설명서, 비밀번호 보안 설명서 (한국어 + Tiếng Việt) |
 
-## Cấu trúc repo
-
-```
-AppTMeet/
-├── backend/     # Node.js + Express API, Socket.IO chat, PostgreSQL (Prisma), auth, 2-stage security logic
-└── mobile/      # Mobile app (React Native + Expo) — đã nối backend thật, xem mobile/README.md
-```
-
-## Backend — quick start
-
-```bash
-cd backend
-cp .env.example .env      # điền JWT_SECRET, DATABASE_URL, ENCRYPTION_KEY
-docker compose up -d db   # chạy PostgreSQL (chạy lệnh này ở thư mục gốc repo)
-npm install
-npx prisma migrate dev --name init
-npm run dev
-```
-
-Server chạy ở `http://localhost:4000`, WebSocket chat cùng port qua Socket.IO.
-
-## Ý tưởng cốt lõi
-
-- Onboarding: chọn tag phong cách du lịch + 1 câu motto → OpenAI phân tích tính cách du lịch
-- Bản đồ: Google Maps hiển thị user gần đó, pin phân loại theo độ tương hợp (하트/기본/상극), có filter ẩn pin 상극
-- Chat: 1:1 trực tiếp + group chat mở
-- **Bảo mật 2 giai đoạn**: mặc định chỉ lộ thông tin lịch trình sơ bộ (thành phố + khoảng thời gian); thông tin chi tiết (địa điểm/giờ cụ thể) chỉ hiện sau khi cả 2 bên đồng ý (consent) trong chat 1:1 — xem `backend/src/controllers/matches.controller.js`.
-
-## Mobile — quick start
-
-```bash
-cd mobile
-npm install
-npx expo install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context react-native-maps expo-secure-store expo-location axios socket.io-client
-```
-
-Sửa `LAN_IP` trong `mobile/src/api/client.js` thành IP máy tính (lệnh `ipconfig`), backend phải đang chạy, rồi:
-
-```bash
-npx expo start
-```
-
-Quét QR bằng app Expo Go trên điện thoại. Chi tiết đầy đủ: `mobile/README.md`.
+이전 Express/Prisma/MySQL 백엔드와 모바일 앱 초안은 삭제했습니다 (git 기록에는 남아 있음).
