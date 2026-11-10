@@ -21,8 +21,8 @@ supabase-backend/.env.example          →  (팀 repo / repo nhóm) .env.example
 npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill
 ```
 
-**KR** DB·함수는 이미 Supabase 프로젝트에 적용돼 있습니다. `supabase/migrations` 는 기록·재현용이며 번호 순서(01 → 04)대로 실행합니다.
-**VI** DB và các hàm đã được áp dụng lên project Supabase. `supabase/migrations` để lưu lại và dựng lại khi cần, chạy theo số thứ tự (01 → 04).
+**KR** DB·함수는 이미 Supabase 프로젝트에 적용돼 있습니다. `supabase/migrations` 는 기록·재현용이며 번호 순서(01 → 05)대로 실행합니다.
+**VI** DB và các hàm đã được áp dụng lên project Supabase. `supabase/migrations` để lưu lại và dựng lại khi cần, chạy theo số thứ tự (01 → 05).
 
 | 파일 / File | 내용 / Nội dung |
 |---|---|
@@ -30,17 +30,18 @@ npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
 | `02_rls_storage.sql` | RLS·권한·사진 저장소 / RLS, quyền, kho ảnh |
 | `03_rpc.sql` | 앱이 부르는 서버 함수 / Hàm server app gọi |
 | `04_hardening.sql` | 보안 점검 후 보강 / Gia cố sau kiểm tra bảo mật |
+| `05_block_hides_profile.sql` | 차단하면 프로필도 숨김 / Chặn thì ẩn luôn hồ sơ (FR-34) |
 
 ### Supabase CLI 사용법 / Cách dùng Supabase CLI
 
-**KR** 원격 프로젝트의 마이그레이션 기록은 파일 이름과 같은 `01`~`04` 로 맞춰 두었습니다. `supabase-backend/` 폴더에서 실행합니다.
-**VI** Lịch sử migration trên project thật đã được đặt là `01`~`04`, khớp với tên file. Chạy các lệnh trong thư mục `supabase-backend/`.
+**KR** 원격 프로젝트의 마이그레이션 기록은 파일 이름과 같은 `01`~`05` 로 맞춰 두었습니다. `supabase-backend/` 폴더에서 실행합니다.
+**VI** Lịch sử migration trên project thật đã được đặt là `01`~`05`, khớp với tên file. Chạy các lệnh trong thư mục `supabase-backend/`.
 
 ```bash
 cd supabase-backend
 npx supabase login                                   # VI: đăng nhập 1 lần / KR: 최초 1회 로그인
 npx supabase link --project-ref gcweoxxtsgealkrvjits # VI: nối với project tmeet / KR: tmeet 프로젝트 연결 (DB 비밀번호 필요 / cần mật khẩu DB)
-npx supabase migration list                          # VI: 01~04 hai cột Local/Remote phải giống nhau / KR: Local·Remote 가 01~04 로 같아야 함
+npx supabase migration list                          # VI: 01~05 hai cột Local/Remote phải giống nhau / KR: Local·Remote 가 01~05 로 같아야 함
 
 # VI: Thêm thay đổi mới / KR: 새 변경 추가
 npx supabase migration new add_something             # → migrations/<thời gian/시각>_add_something.sql
@@ -50,13 +51,13 @@ npx supabase db push                                 # VI: áp lên project th�
 npx supabase functions deploy analyze-bio
 npx supabase functions deploy delete-account
 
-# VI: Chạy thử trên máy (cần Docker) — tự chạy 01~04 rồi seed Paris
-# KR: 로컬 실행 (Docker 필요) — 01~04 와 파리 seed 를 자동 실행
+# VI: Chạy thử trên máy (cần Docker) — tự chạy 01~05 rồi seed Paris
+# KR: 로컬 실행 (Docker 필요) — 01~05 와 파리 seed 를 자동 실행
 npx supabase start
 ```
 
-**KR** `supabase migration new` 가 만드는 파일은 시각(예: `20261110…`)으로 시작하지만, 문자 순서로 `04` 뒤에 오므로 그대로 써도 됩니다. 이름을 맞추고 싶으면 `05_add_something.sql` 처럼 바꿔도 됩니다. `supabase config push` 는 실제 프로젝트의 Auth 설정을 덮어쓰므로 주의하세요.
-**VI** File do `supabase migration new` tạo sẽ bắt đầu bằng thời gian (vd `20261110…`). Vì xếp theo thứ tự ký tự nên nó vẫn đứng sau `04`, dùng luôn cũng được. Muốn đồng bộ tên thì đổi thành `05_add_something.sql`. Cẩn thận với `supabase config push` vì lệnh này ghi đè cài đặt Auth trên project thật.
+**KR** `supabase migration new` 가 만드는 파일은 시각(예: `20261110…`)으로 시작하지만, 문자 순서로 `05` 뒤에 오므로 그대로 써도 됩니다. 이름을 맞추고 싶으면 `06_add_something.sql` 처럼 바꿔도 됩니다. `supabase config push` 는 실제 프로젝트의 Auth 설정을 덮어쓰므로 주의하세요.
+**VI** File do `supabase migration new` tạo sẽ bắt đầu bằng thời gian (vd `20261110…`). Vì xếp theo thứ tự ký tự nên nó vẫn đứng sau `05`, dùng luôn cũng được. Muốn đồng bộ tên thì đổi thành `06_add_something.sql`. Cẩn thận với `supabase config push` vì lệnh này ghi đè cài đặt Auth trên project thật.
 
 ## 2. 담당 작업 현황 / Tình trạng công việc
 
@@ -146,7 +147,7 @@ storage: avatars/{user_id}/photo.jpg|png
 
 | 표 / Bảng | RLS (KR) | RLS (VI) |
 |---|---|---|
-| profiles | 읽기: 나 / 숨김 아닌 사람(차단 제외) / 요청·채팅 상대. 수정: 내 줄, 허용된 칸만 | Đọc: mình / người không ẩn (trừ người chặn nhau) / người đã mời hoặc chat. Sửa: dòng của mình, cột cho phép |
+| profiles | 읽기: 나 / 숨김 아닌 사람 / 요청·채팅 상대 — 단, 차단 관계면 항상 안 보임. 수정: 내 줄, 허용된 칸만 | Đọc: mình / người không ẩn / người đã mời hoặc chat — nhưng chặn nhau thì luôn không thấy. Sửa: dòng của mình, cột cho phép |
 | connection_requests | 당사자만 읽기, 쓰기는 RPC만 | Chỉ hai bên đọc, ghi chỉ qua RPC |
 | chat_rooms | 두 사람만 읽기, 생성은 RPC만, 탈퇴 시 해당 칸 null | Chỉ hai người đọc, tạo qua RPC, rời app thì ô đó null |
 | messages | 방 두 사람만 읽기·쓰기, 차단·탈퇴 후 쓰기 불가 | Chỉ hai người đọc/gửi, chặn hoặc rời app thì không gửi được |
@@ -158,6 +159,24 @@ storage: avatars/{user_id}/photo.jpg|png
 **KR** 실제 DB에서 2~3명 계정으로 시뮬레이션: 가입 트리거·동의 기록, 남의 좌표/`is_demo` 수정 차단, 동의 전 위치 저장 차단, 잘못된 태그 거부, 좌표 뭉개기 멱등성, 주변 조회(0.8 km 상대, 시연 모드 14명, 반경 3 km), 요청 중복·자기 수락·직접 INSERT 차단, 수락 → 채팅방 → 메시지, 제3자 열람·쓰기 차단, 차단 후 양쪽 모두 사라짐, 비로그인 전면 차단. Supabase Security Advisor 경고 정리 완료.
 
 **VI** Giả lập 2~3 tài khoản trên DB thật: trigger đăng ký và ghi đồng ý, chặn sửa tọa độ/`is_demo`, chặn lưu vị trí khi chưa đồng ý, từ chối tag sai, làm mờ tọa độ ổn định, tìm người gần (người cách 0,8 km, chế độ demo 14 người, bán kính 3 km), chặn lời mời trùng / tự chấp nhận / ghi thẳng vào bảng, chấp nhận → phòng chat → tin nhắn, người ngoài không đọc/ghi được, chặn xong hai bên biến mất khỏi nhau, người chưa đăng nhập bị chặn hoàn toàn. Đã xử lý các cảnh báo của Supabase Security Advisor.
+
+**네트워크 통합 테스트 / Test tích hợp qua mạng (2026-11-10)**
+
+**KR** 앱과 같은 `supabase-js` 로 GitHub 의 `src/api/*.js` 를 그대로 불러와 실제 프로젝트에 2개 테스트 계정으로 실행했습니다 (총 40여 단계, 테스트 데이터는 삭제함).
+**VI** Dùng đúng thư viện `supabase-js` như app, tải nguyên các file `src/api/*.js` từ GitHub và chạy trên project thật với 2 tài khoản test (hơn 40 bước, dữ liệu test đã xóa).
+
+| 항목 / Hạng mục | 결과 / Kết quả |
+|---|---|
+| 로그인 / Đăng nhập | ✅ |
+| AI 분석 / Phân tích AI (Claude Haiku 5.5) | ✅ 3.8초/giây, 선택하지 않은 `local` 태그 발견 / tìm ra tag `local` không được chọn · 두 번째는 cache / lần 2 dùng cache (0.2초/giây) |
+| AI 태그 삭제만 가능 / Chỉ xóa được tag AI | ✅ 추가 시 `ai_tags_remove_only` / thêm thì báo lỗi |
+| 사진 업로드 / Tải ảnh | ✅ 내 폴더 OK, 남의 폴더 거부 / thư mục mình OK, thư mục người khác bị chặn |
+| 위치 동의·저장·주변 조회 / Đồng ý, lưu vị trí, tìm người gần | ✅ 동의 전 거부 · 0.8 km 상대 발견 · 시연 모드 14명 · 반경 3 km 10명 |
+| 요청 → 수락 → 채팅 / Lời mời → chấp nhận → chat | ✅ 중복 요청 거부 / chặn lời mời trùng |
+| 실시간 채팅 / Chat realtime | ✅ 상대에게 즉시 도착 / tới ngay |
+| 현지 확인 (NFR-20) / Kiểm tra ở gần | ✅ 광주→파리 요청 `too_far` · 도시를 떠나도 기존 채팅 가능 / rời thành phố vẫn chat tiếp |
+| 신고·차단·해제 / Báo cáo, chặn, bỏ chặn | ✅ (05 마이그레이션으로 프로필 숨김 수정 / sửa ẩn hồ sơ bằng migration 05) |
+| 탈퇴 / Xóa tài khoản | ✅ 사진·보낸 메시지 삭제, 재로그인 불가, 상대 채팅방에 "탈퇴한 사용자" / xóa ảnh và tin đã gửi, không đăng nhập lại được, phía kia thấy "đã rời" |
 
 ## 7. 남은 설정 / Việc còn lại (Dashboard, 1~2분/phút)
 
