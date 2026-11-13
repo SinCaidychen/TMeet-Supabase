@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TMeet · 이메일 인증</title>
+<style>
+  :root { --matcha:#8FA382; --pink:#FFB7B2; --cream:#FBFBF9; --charcoal:#1E211F; --mid:#5C6158; --matcha-light:#E4EBDD; }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: var(--cream); color: var(--charcoal);
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  main { width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .logo { font-size: 36px; line-height: 1; }
+  .logo .t { font-weight: 300; } .logo .m { font-weight: 700; }
+  .badge { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; }
+  .ok .badge { background: var(--matcha); color: var(--cream); }
+  .err .badge { background: var(--pink); color: var(--charcoal); }
+  h1 { font-size: 22px; font-weight: 700; }
+  .card { width: 100%; background: var(--matcha-light); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .card p { font-size: 15px; line-height: 1.55; }
+  .card p.en { font-size: 13px; color: var(--mid); }
+  .err .card { background: #FFE6E4; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo"><span class="t">T</span><span class="m">Meet</span></div>
+
+  <!-- Supabase 는 링크를 누르는 순간 서버에서 인증을 끝내고 이 페이지로 보낸다. 실패하면 주소 # 뒤에 error 가 붙어 온다. -->
+  <section id="ok" class="ok" style="display:contents">
+    <div class="badge">✓</div>
+    <h1>이메일 인증 완료</h1>
+    <div class="card">
+      <p>TMeet 앱으로 돌아가서 <b>다음</b>을 눌러 주세요.</p>
+      <p class="en">Your email is verified. Go back to the TMeet app and tap <b>Next</b>.</p>
+    </div>
+  </section>
+
+  <section id="err" class="err" style="display:contents" hidden>
+    <div class="badge">!</div>
+    <h1>링크를 사용할 수 없어요</h1>
+    <div class="card">
+      <p>링크가 만료됐거나 이미 사용됐어요. 앱에서 <b>인증 메일 다시 보내기</b>를 눌러 주세요.</p>
+      <p class="en">This link has expired or was already used. In the app, tap <b>Resend verification email</b>.</p>
+    </div>
+  </section>
+</main>
+<script>
+  // 주소의 #access_token=... 같은 값은 화면에서 지워서 남지 않게 한다.
+  var params = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  if (params.get('error') || params.get('error_code')) {
+    document.getElementById('ok').hidden = true;
+    document.getElementById('ok').style.display = 'none';
+    document.getElementById('err').hidden = false;
+  }
+  if (location.hash || location.search) history.replaceState(null, '', location.pathname);
+</script>
+</body>
+</html>
